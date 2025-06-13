@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XXTCloud Control Panel</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="remote-control.css">
+    <style>
+        /* 侧边栏样式 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 230px;
+            background-color: #222;
+            color: #fff;
+            padding-top: 20px;
+            transition: all 0.3s ease;
+            z-index: 100;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .sidebar-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-logo h1 {
+            font-size: 20px;
+            margin: 0;
+            color: #fff;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            padding: 0;
+        }
+        
+        .sidebar-menu a {
+            display: block;
+            padding: 12px 20px;
+            color: #bbb;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-menu a:hover {
+            background-color: #333;
+            color: #fff;
+        }
+        
+        .sidebar-menu a.active {
+            background-color: #2c2c2c;
+            color: #fff;
+            border-left: 3px solid #3498db;
+        }
+        
+        /* 主内容区域样式 */
+        .main-content {
+            margin-left: 230px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        /* 顶部认证栏样式 */
+        .auth-panel {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        /* 页面容器样式 */
+        .page-container {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .page-container.active {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* 响应式布局 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+                transform: translateX(0);
+            }
+            
+            .sidebar-logo h1 {
+                display: none;
+            }
+            
+            .sidebar-menu a span {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏导航 -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <h1>XXTCloud</h1>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="#home" class="active" data-page="home"><i class="icon">🏠</i> <span>设备控制面板</span></a></li>
+            <li><a href="#workspace" data-page="workspace"><i class="icon">📝</i> <span>工作空间</span></a></li>
+            <li><a href="#devices" data-page="devices"><i class="icon">📱</i> <span>设备管理</span></a></li>
+        </ul>
+    </div>
+    
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 认证面板 -->
+        <div class="auth-panel">
+            <input type="password" id="password" placeholder="请输入控制密码" value="12345678">
+            <button id="connect-btn">连接服务器</button>
+            <span id="connection-status" class="status-disconnected">未连接</span>
+        </div>
+        
+        <!-- 设备控制面板页面 -->
+        <div id="home" class="page-container active">
+            <h2>XXTCloud 设备控制面板</h2>
+            
+            <!-- 日志面板 -->
+            <div id="log-panel" class="log-panel">
+                <div class="panel-header">
+                    <h2>日志</h2>
+                    <button id="clear-log">清空日志</button>
+                </div>
+                <div id="log-content" class="log-content"></div>
+            </div>
+            
+            <!-- 文件上传区域 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>文件上传</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="upload-section">
+                        <div class="upload-form">
+                            <div class="upload-path-input">
+                                <label for="upload-path">上传路径:</label>
+                                <input type="text" id="upload-path" value="/lua/scripts/">
+                            </div>
+                            <div class="file-drop-area" id="file-drop-area">
+                                <span class="drop-message">拖放文件到此处或点击选择文件</span>
+                                <input type="file" id="file-drop-area-file-input" multiple>
+                            </div>
+                            <div class="selected-files" id="selected-files">
+                                <div class="no-files">未选择文件</div>
+                            </div>
+                            <div class="upload-actions">
+                                <button id="upload-files-btn" disabled>上传文件</button>
+                            </div>
+                            <div class="upload-progress" style="display: none;">
+                                <div class="progress-bar" id="progress-bar"></div>
+                                <div class="progress-info" id="progress-info">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 工作空间页面 -->
+        <div id="workspace" class="page-container">
+            <h2>工作空间</h2>
+            
+            <!-- 脚本控制区域 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>脚本控制</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="script-control-section">
+                        <div class="script-control-form">
+                            <div class="script-path-input">
+                                <label for="script-path">脚本名称:</label>
+                                <input type="text" id="script-path" placeholder="例如: main.lua" value="main.lua">
+                            </div>
+                            <div class="script-actions">
+                                <button id="run-script-btn" disabled>启动脚本</button>
+                                <button id="stop-script-btn" disabled>停止脚本</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 设备管理页面 -->
+        <div id="devices" class="page-container">
+            <h2>设备管理</h2>
+            
+            <!-- 设备控制按钮 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>设备控制</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="device-control-form">
+                        <div class="device-actions">
+                            <button id="restart-device-btn" disabled>重启设备</button>
+                            <button id="respring-device-btn" disabled>注销设备</button>
+                            <button id="refresh-btn" disabled>刷新设备列表</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 设备列表 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>设备列表</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="devices-table-container">
+                        <table id="devices-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%">
+                                        <label class="select-all-label">
+                                            <input type="checkbox" id="select-all-devices">
+                                            <span>全选</span>
+                                        </label>
+                                    </th>
+                                    <th style="width: 10%">设备名称</th>
+                                    <th style="width: 15%">UDID</th>
+                                    <th style="width: 10%">IP地址</th>
+                                    <th style="width: 10%">系统</th>
+                                    <th style="width: 5%">电量</th>
+                                    <th style="width: 5%">脚本</th>
+                                    <th style="width: 40%">最后日志</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devices-list">
+                                <!-- 设备列表将通过JavaScript动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 远程控制模态窗口 -->
+    <div id="remote-control-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="remote-device-name">远程控制</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="screen-container">
+                    <canvas id="device-screen"></canvas>
+                    <div class="screen-overlay" id="screen-overlay"></div>
+                </div>
+                <div class="control-buttons">
+                    <button id="show-file-browser">文件浏览器</button>
+                    <button id="press-power-key">电源键</button>
+                    <button id="press-home-key">Home 键</button>
+                    <button id="start-screen-capture">开始捕获</button>
+                    <button id="stop-screen-capture">停止捕获</button>
+                    <span id="fps-counter">0 FPS</span>
+                </div>
+                
+                <!-- 文件浏览器 -->
+                <div id="file-browser" class="file-browser">
+                    <div class="file-browser-header">
+                        <h3>文件浏览器</h3>
+                        <div class="path-navigation">
+                            <input type="text" id="current-path" value="/lua/scripts/">
+                            <button id="go-path">转到</button>
+                            <button id="go-parent">上级目录</button>
+                        </div>
+                    </div>
+                    <div class="file-browser-content" id="file-browser-dropzone">
+                        <div class="upload-overlay" id="upload-overlay">
+                            <div class="upload-message">
+                                <i class="upload-icon">📤</i>
+                                <p>拖放文件或目录到此处上传</p>
+                            </div>
+                        </div>
+                        <table id="file-list">
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>类型</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 文件列表将通过JavaScript动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="file-browser-footer">
+                        <button id="create-dir-btn">新建目录</button>
+                        <button id="upload-file-btn">上传文件</button>
+                        <input type="file" id="file-browser-file-input" multiple style="display: none;">
+                        <button id="refresh-files">刷新</button>
+                        <button id="close-file-browser">关闭</button>
+                    </div>
+                </div>
+                
+                <!-- 文件查看器 -->
+                <div id="file-viewer" class="file-viewer">
+                    <div class="file-viewer-header">
+                        <h3 id="file-viewer-title">文件查看器</h3>
+                        <button id="close-file-viewer">关闭</button>
+                    </div>
+                    <div class="file-viewer-content">
+                        <pre id="file-content"></pre>
+                    </div>
+                    <div class="file-viewer-footer">
+                        <button id="download-file">下载文件</button>
+                    </div>
+                </div>
+                
+                <!-- 创建目录对话框 -->
+                <div id="create-dir-dialog" class="create-dir-dialog">
+                    <h4>创建新目录</h4>
+                    <input type="text" id="new-dir-name" placeholder="输入目录名称">
+                    <div class="dialog-buttons">
+                        <button id="cancel-create-dir">取消</button>
+                        <button id="confirm-create-dir">创建</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // 页面切换功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuLinks = document.querySelectorAll('.sidebar-menu a');
+            const pages = document.querySelectorAll('.page-container');
+            
+            menuLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // 移除所有活动状态
+                    menuLinks.forEach(item => item.classList.remove('active'));
+                    pages.forEach(page => page.classList.remove('active'));
+                    
+                    // 添加当前活动状态
+                    this.classList.add('active');
+                    
+                    // 显示对应的页面
+                    const pageId = this.getAttribute('data-page');
+                    document.getElementById(pageId).classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
